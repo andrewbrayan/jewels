@@ -1,0 +1,64 @@
+.main-section {
+  background-color: #a1a9b0;
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
+
+    .row {
+      display: grid;
+      gap: 5px;
+
+      .cell {
+        width: 100%;
+        aspect-ratio: 1/1;
+        background-color: #c4ebe9;
+        padding: 3px;
+        border-radius: 15%;
+        cursor: pointer;
+      }
+    }
+  }
+
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 1rem;
+
+    h1 {
+      display: flex;
+      gap: 1rem;
+      font-size: 2rem;
+      font-family: "robotoCondensed", sans-serif;
+    }
+
+    .buttons {
+
+      button {
+        position: relative;
+        width: 10rem;
+        height: 3rem;
+        margin: auto;
+        background-color: #E04343;
+        border: none;
+        box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1);
+        font-family: "robotoCondensed", sans-serif;
+        color: #fff;
+        font-size: 1rem;
+        cursor: pointer;
+
+        @media (max-width: 1024px) {
+          height: 2.5rem;
+        }
+
+        &:hover {
+          background-color: #fff;
+          color: #000;
+          border: 1px solid #E04343;
+        }
+      }
+    }
+  }
+}
