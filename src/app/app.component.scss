@@ -17,6 +17,13 @@
         padding: 3px;
         border-radius: 15%;
         cursor: pointer;
+
+        &--selected {
+          background-color: #d138e3;
+          img {
+            animation: wiggle 1s infinite linear;
+          }
+        }
       }
     }
   }
@@ -60,5 +67,23 @@
         }
       }
     }
+  }
+}
+
+@keyframes wiggle {
+  0% {
+    transform: rotate(0deg);
+  }
+  80% {
+    transform: rotate(0deg);
+  }
+  85% {
+    transform: rotate(15deg);
+  }
+  95% {
+    transform: rotate(-15deg);
+  }
+  100% {
+    transform: rotate(0deg);
   }
 }

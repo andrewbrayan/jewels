@@ -1,9 +1,9 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, ViewChild, ElementRef } from '@angular/core';
 import { Board } from './board/board.class';
 import { Jewel } from './jewel/jewel.class';
 
-const GRID_ROWS = 8;
-const GRID_COLS = 20;
+const GRID_ROWS = 15;
+const GRID_COLS = 35;
 
 @Component({
   selector: 'app-root',
@@ -11,16 +11,15 @@ const GRID_COLS = 20;
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  @ViewChild('board') boardHTMLElement!: ElementRef;
-  grid: any[][];
-  board: Board = new Board(GRID_ROWS, GRID_COLS);
+  @ViewChild('boardElement') boardHTMLElement!: ElementRef;
+  board: Board;
   score: number;
-  jewelOneSelected: Jewel | null = null;
-  jewelTwoSelected: Jewel | null = null;
+  selectedJewel: Jewel | null;
 
   constructor() {
-    this.grid = this.board.grid;
-    this.score = this.board.score;
+    this.board = new Board(GRID_ROWS, GRID_COLS);
+    this.score = this.board.getScore;
+    this.selectedJewel = this.board.selectedJewel;
   }
 
   ngOnInit(): void {}
@@ -43,24 +42,23 @@ export class AppComponent {
   }
 
   jewelMove(jewel: Jewel): void {
-    if (this.jewelOneSelected) {
-      this.jewelTwoSelected = jewel;
-      if (this.jewelOneSelected.color != this.jewelTwoSelected.color) {
-        this.board.moveJewel(this.jewelOneSelected, this.jewelTwoSelected);
-        this.board.detectAndRemoveMatches(this.jewelOneSelected, this.jewelTwoSelected);
-      };
-
-      this.score = this.board.score;
-      this.jewelTwoSelected = null;
-      this.jewelOneSelected = null;
+    if (this.board.selectedJewel) {
+      if (this.board.selectedJewel === jewel) {
+        this.board.selectedJewel = null
+      } else {
+        this.board.swapJewels(this.board.selectedJewel, jewel);
+        this.score = this.board.getScore;
+      }
     } else {
-      this.jewelOneSelected = jewel;
+      this.board.selectedJewel = jewel;
     }
+
+    this.selectedJewel = this.board.selectedJewel;
   }
 
   reset(): void {
     this.board.reset();
-    this.score = this.board.score;
+    this.score = this.board.getScore;
     setTimeout(() => {
       this.setBoardStyle(GRID_ROWS, GRID_COLS);
     }, 50);

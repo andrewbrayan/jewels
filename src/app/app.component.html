@@ -1,7 +1,7 @@
 <div class="main-section">
-    <div #board class="grid">
-      <div class="row" *ngFor="let row of grid">
-        <div class="cell" *ngFor="let jewel of row" (click)="jewelMove(jewel)">
+    <div #boardElement class="grid">
+      <div class="row" *ngFor="let row of board.getBoard">
+        <div class="cell" [ngClass]="{'cell--selected': selectedJewel === jewel}" *ngFor="let jewel of row" (click)="jewelMove(jewel)">
           <img [src]="'../../../../assets/jewel-game/' + jewel.imagen" [alt]="jewel.color" *ngIf="!jewel.delete">
         </div>
       </div>

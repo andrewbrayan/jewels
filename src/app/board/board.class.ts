@@ -1,7 +1,12 @@
 import { Jewel } from '../jewel/jewel.class';
 import { JewelFactory } from '../jewel/jewel_factory.class';
 
-type cords = { row: number; column: number };
+const directions = [
+  [-1, 0],
+  [1, 0],
+  [0, -1],
+  [0, 1],
+];
 
 export class Board {
   private readonly rows: number;
@@ -9,20 +14,31 @@ export class Board {
   private _board: Jewel[][];
   private _score: number;
 
+  private _selectedJewel: Jewel | null;
+
   constructor(rows: number, columns: number) {
     this.rows = rows;
     this.columns = columns;
     this._board = [];
     this._score = 0;
+    this._selectedJewel = null;
     this.generateBoard();
   }
 
-  get grid(): Jewel[][] {
+  get getBoard(): Jewel[][] {
     return this._board;
   }
 
-  get score(): number {
+  get getScore(): number {
     return this._score;
+  }
+
+  set selectedJewel(jewel: Jewel | null) {
+    this._selectedJewel = jewel;
+  }
+
+  get selectedJewel(): Jewel | null {
+    return this._selectedJewel;
   }
 
   private generateBoard(): void {
@@ -35,182 +51,143 @@ export class Board {
     }
   }
 
-  public moveJewel(jewel1: Jewel, jewel2: Jewel): void {
-    const cords1 = { row: jewel1.row, column: jewel1.column };
-    const cords2 = { row: jewel2.row, column: jewel2.column };
+  private searchMatchedGroup(jewel: Jewel, visited: boolean[][] = []): Jewel[] {
+    if (visited.length === 0) {
+      for (let row = 0; row < this.rows; row++) {
+        visited[row] = new Array(this.columns).fill(false);
+      }
+    }
 
-    // detectar si las joyas seleccionadas son adyacentes
-    if (!this.areJewelsAdjacent(cords1, cords2)) return;
+    const row = jewel.row;
+    const col = jewel.column;
 
-    this._board[cords1.row][cords1.column] = jewel2;
-    this._board[cords2.row][cords2.column] = jewel1;
+    if (visited[row][col]) {
+      return [];
+    }
 
-    jewel1.row = cords2.row;
-    jewel1.column = cords2.column;
+    visited[row][col] = true;
+    let group = [jewel];
 
-    jewel2.row = cords1.row;
-    jewel2.column = cords1.column;
+    for (let [dRow, dCol] of directions) {
+      const newRow = row + dRow;
+      const newCol = col + dCol;
+
+      if (
+        this.isValid(newRow, newCol) &&
+        !visited[newRow][newCol] &&
+        this._board[newRow][newCol].color === jewel.color
+      ) {
+        group.push(
+          ...this.searchMatchedGroup(this._board[newRow][newCol], visited)
+        );
+      }
+    }
+
+    return group;
   }
 
-  private areJewelsAdjacent(cords1: cords, cords2: cords): boolean {
-    const isAdjacentInRow =
-      Math.abs(cords1.column - cords2.column) === 1 &&
-      cords1.row === cords2.row;
-    const isAdjacentInColumn =
-      Math.abs(cords1.row - cords2.row) === 1 &&
-      cords1.column === cords2.column;
-
-    return isAdjacentInRow || isAdjacentInColumn;
+  private deleteMatchedGroups(jewels: Jewel[]): void {
+    for (let jewel of jewels) {
+      const group = this.searchMatchedGroup(jewel);
+      if (group.length >= 3) {
+        for (let jewel of group) {
+          jewel.delete = true;
+          this._score += 1
+          this.moveUpJewel(jewel);
+        }
+      }
+    }
   }
 
-  private isAdjacentToSelectedJewels(
-    jewels: Jewel[],
-    jewelOneSelected: Jewel,
-    jewelTwoSelected: Jewel
-  ): boolean {
-    const cords1 = {
-      row: jewelOneSelected.row,
-      column: jewelOneSelected.column,
-    };
-    const cords2 = {
-      row: jewelTwoSelected.row,
-      column: jewelTwoSelected.column,
-    };
+  private moveUpJewel(deleteJewel: Jewel): void {
+    if (deleteJewel.row === 0) return;
 
-    return jewels.some((jewel) => {
-      const cords = { row: jewel.row, column: jewel.column };
+    const upJewel = this._board[deleteJewel.row - 1][deleteJewel.column];
+    const tempRow = deleteJewel.row;
+    const tempCol = deleteJewel.column;
 
-      return (
-        this.areJewelsAdjacent(cords, cords1) ||
-        this.areJewelsAdjacent(cords, cords2)
-      );
-    });
+    deleteJewel.row = upJewel.row;
+    deleteJewel.column = upJewel.column;
+    upJewel.row = tempRow;
+    upJewel.column = tempCol;
+
+    this._board[deleteJewel.row][deleteJewel.column] = deleteJewel;
+    this._board[upJewel.row][upJewel.column] = upJewel;
+
+    this.moveUpJewel(deleteJewel)
   }
 
-  public detectAndRemoveMatches(
-    jewelOneSelected: Jewel,
-    jewelTwoSelected: Jewel
-  ): void {
-    const matches: Jewel[][] = [];
-
-    // Detección de combinaciones horizontales
+  private regenerateJewels(): void {
     for (let row = 0; row < this.rows; row++) {
-      let currentMatch: Jewel[] = [];
-      let currentColor = '';
-
       for (let col = 0; col < this.columns; col++) {
         const jewel = this._board[row][col];
 
-        if (jewel.color === currentColor) {
-          currentMatch.push(jewel);
-        } else {
-          if (currentMatch.length >= 3) {
-            if (
-              this.isAdjacentToSelectedJewels(
-                currentMatch,
-                jewelOneSelected,
-                jewelTwoSelected
-              )
-            ) {
-              matches.push(currentMatch);
-            }
-          }
-
-          currentMatch = [jewel];
-          currentColor = jewel.color;
-        }
-      }
-
-      if (currentMatch.length >= 3) {
-        if (
-          this.isAdjacentToSelectedJewels(
-            currentMatch,
-            jewelOneSelected,
-            jewelTwoSelected
-          )
-        ) {
-          matches.push(currentMatch);
+        if (jewel.delete) {
+          this._board[row][col] = JewelFactory.createRandomJewel([row, col]);
         }
       }
     }
+  }
 
-    // Detección de combinaciones verticales
-    for (let col = 0; col < this.columns; col++) {
-      let currentMatch: Jewel[] = [];
-      let currentColor = '';
+  public swapJewels(jewel1: Jewel, jewel2: Jewel): void {
+    if ( this.areJewelsAdjacent(jewel1, jewel2) && jewel1.color !== jewel2.color ) {
+      const tempRow = jewel1.row;
+      const tempCol = jewel1.column;
 
-      for (let row = 0; row < this.rows; row++) {
-        const jewel = this._board[row][col];
+      jewel1.row = jewel2.row;
+      jewel1.column = jewel2.column;
+      jewel2.row = tempRow;
+      jewel2.column = tempCol;
 
-        if (jewel.color === currentColor) {
-          currentMatch.push(jewel);
-        } else {
-          if (currentMatch.length >= 3) {
-            if (
-              this.isAdjacentToSelectedJewels(
-                currentMatch,
-                jewelOneSelected,
-                jewelTwoSelected
-              )
-            ) {
-              matches.push(currentMatch);
-            }
-          }
+      this._board[jewel1.row][jewel1.column] = jewel1;
+      this._board[jewel2.row][jewel2.column] = jewel2;
 
-          currentMatch = [jewel];
-          currentColor = jewel.color;
-        }
-      }
+      this.selectedJewel = null;
 
-      if (currentMatch.length >= 3) {
-        if (
-          this.isAdjacentToSelectedJewels(
-            currentMatch,
-            jewelOneSelected,
-            jewelTwoSelected
-          )
-        ) {
-          matches.push(currentMatch);
-        }
-      }
-    }
-
-    // Eliminar las joyas en las combinaciones encontradas
-    for (const match of matches) {
-      for (const jewel of match) {
-        jewel.delete = true;
-
-        setTimeout(() => {
-          // Desplazar las joyas encima hacia abajo
-          for (let row = jewel.row; row >= 0; row--) {
-            if (row - 1 < 0) break;
-            const nextJewel = this._board[row - 1][jewel.column];
-            const currentJewel = this._board[row][jewel.column];
-
-            this.moveJewel(nextJewel, currentJewel);
-          }
-        }, 500);
-      }
-
+      // Eliminar solo los nuevos grupos
+      this.deleteMatchedGroups([jewel1, jewel2]);
       setTimeout(() => {
-        for (let row = 0; row < this.rows; row++) {
-          for (let col = 0; col < this.columns; col++) {
-            const jewel = this._board[row][col];
-
-            if (jewel.delete) {
-              const newJewel = JewelFactory.createRandomJewel([row, col]);
-              this._board[row][col] = newJewel;
-            }
-          }
-        }
-      }, 800);
-
-      this._score += match.length;
+        this.regenerateJewels()
+      }, 200);
     }
   }
 
   reset(): void {
-    this.generateBoard()
+    this.generateBoard();
     this._score = 0;
+  }
+
+  //* verifications functions
+  public findAllMatches(): Jewel[][] {
+    const matchedGroups: Jewel[][] = [];
+
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.columns; col++) {
+        const jewel = this._board[row][col];
+
+        const group: Jewel[] = this.searchMatchedGroup(jewel);
+
+        if (group.length >= 3) {
+          matchedGroups.push(group);
+        }
+      }
+    }
+
+    return matchedGroups;
+  }
+
+  private areJewelsAdjacent(jewel1: Jewel, jewel2: Jewel): boolean {
+    const isAdjacentInRow =
+      Math.abs(jewel1.column - jewel2.column) === 1 &&
+      jewel1.row === jewel2.row;
+    const isAdjacentInColumn =
+      Math.abs(jewel1.row - jewel2.row) === 1 &&
+      jewel1.column === jewel2.column;
+
+    return isAdjacentInRow || isAdjacentInColumn;
+  }
+
+  private isValid(row: number, col: number): boolean {
+    return row >= 0 && row < this.rows && col >= 0 && col < this.columns;
   }
 }

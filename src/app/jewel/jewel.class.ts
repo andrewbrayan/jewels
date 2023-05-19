@@ -1,7 +1,7 @@
 export class Jewel {
-  private _type: string;
-  private _color: string;
-  private _imagen: string;
+  private readonly _type: string;
+  private readonly _color: string;
+  private readonly _imagen: string;
   private _row: number;
   private _column: number;
   private _delete: boolean;
